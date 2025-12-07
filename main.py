@@ -1,6 +1,8 @@
 import os
+import requests
 from flask import Flask, request, jsonify
 
+GO_server = "URL"
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
@@ -13,7 +15,6 @@ system_state = {
 
 @app.route('/report_motion', methods=['POST'])
 def report_motion():
-    print("Pico detected motion! Queuing photo command...")
     system_state['command_to_camera'] = 1
     return "Command received", 200
 
@@ -34,6 +35,15 @@ def upload_photo():
     file = request.files['imageFile']
     filename = os.path.join(UPLOAD_FOLDER, f"capture_{os.urandom(4).hex()}.jpg")
     file.save(filename)
+
+    file_to_send = {
+        'image' : (filename, file.stream, file.mimetype)
+    }
+    try:
+        ans = requests.post(GO_server, files=file_to_send)
+        print(f"GO server responded: {ans.status_code} {ans.text}")
+    except Exception as e:
+        print(f"Error sending to GO: {e}")
     print(f"Photo saved: {filename}")
     return "Saved", 200
 
